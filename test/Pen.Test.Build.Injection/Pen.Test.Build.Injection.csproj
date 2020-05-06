@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="..\..\src\Pen.Build\bin\Debug\netcoreapp3.1\Pen.Build.exe Pen.Test.Build.Injection C:\code\Di-Pen\test\Pen.Test.Build.Core\bin\Debug\netstandard2.0\Pen.Test.Build.Core.dll C:\code\Di-Pen\test\Pen.Test.Build.Injection" />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Pen\Pen.csproj" />
+    <ProjectReference Include="..\Pen.Test.Build.Core\Pen.Test.Build.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+﻿{
+  "dependencies": {
+    "type": "",
+    "lifestyle": {
+      "type": ""
+    }
+    "source": {
+      "attribute": {},
+      "autoWire": {}
+    },
+    "provider": {
+      "strategy": "<Implementation|Factory>",
+      "type": "",
+      "dependencies": [],
+      "method": {
+        "name",
+        "dependencies": []
+      }
+    },
+    "errors": []
+  }
+}

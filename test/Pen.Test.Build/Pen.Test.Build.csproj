@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Pen\Pen.csproj" />
+    <ProjectReference Include="..\Pen.Test.Build.Core\Pen.Test.Build.Core.csproj" />
+    <ProjectReference Include="..\Pen.Test.Build.Injection\Pen.Test.Build.Injection.csproj" />
+  </ItemGroup>
+
+</Project>
