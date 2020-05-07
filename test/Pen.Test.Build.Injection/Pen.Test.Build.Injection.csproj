@@ -1,11 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  <UsingTask TaskName="Pen.PenGenerate" AssemblyFile="..\..\src\Pen\bin\debug\netstandard2.0\Pen.dll" />
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="..\..\src\Pen.Build\bin\Debug\netcoreapp3.1\Pen.Build.exe Pen.Test.Build.Injection C:\code\Di-Pen\test\Pen.Test.Build.Core\bin\Debug\netstandard2.0\Pen.Test.Build.Core.dll C:\code\Di-Pen\test\Pen.Test.Build.Injection" />
+  <Target Name="DiPenGenerate" BeforeTargets="PreBuildEvent">
+    <PenGenerate Namespace="Pen.Test.Build.Injection"
+                 InputDll="..\Pen.Test.Build.Core\bin\Debug\netstandard2.0\Pen.Test.Build.Core.dll"
+                 OutputDirectory=".\" />
+    <!--<Exec Command="..\..\src\Pen.Build\bin\Debug\netcoreapp3.1\Pen.Build.exe Pen.Test.Build.Injection C:\code\Di-Pen\test\Pen.Test.Build.Core\bin\Debug\netstandard2.0\Pen.Test.Build.Core.dll C:\code\Di-Pen\test\Pen.Test.Build.Injection" />-->
   </Target>
 
   <ItemGroup>
