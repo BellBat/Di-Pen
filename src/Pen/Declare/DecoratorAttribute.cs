@@ -3,7 +3,7 @@
 namespace Pen.Declare
 {
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    public class DecoratorAttribute : Attribute
+    public class DecoratorAttribute : Attribute, IDecoratorData
     {
         public DecoratorAttribute(Type type, Type dependency)
         {

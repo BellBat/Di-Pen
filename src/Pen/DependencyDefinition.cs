@@ -1,12 +1,13 @@
 ﻿using Pen.Declare;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Pen
 {
     public class DependencyDefinition
     {
-        public DependencyAttribute Declaration { get; set; }
+        public IDependencyData Declaration { get; set; }
 
         public Type Type { get; set; }
 

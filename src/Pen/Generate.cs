@@ -10,19 +10,38 @@ namespace Pen
 {
     public static class Generate
     {
+        private static string Output { get; set; }
+
         public static void Execute(string baseNamespace, string input, string output)
         {
-            var classNamespace = baseNamespace;
+            Output = output;
 
-            var assembly = Assembly.LoadFrom(input);
-            var dependencies = ResolveDependencies(assembly).Values.ToArray();
+            FileDeleteIfExists(Path.Combine(output, "pen-generate.log"));
+            FileDeleteIfExists(Path.Combine(output, "ApplicationPen.Dependency.cs"));
 
-            File.Delete(Path.Combine(output, "ApplicationPen.Dependency.cs"));
-
-            foreach(var existingFile in Directory.GetFiles(output, "ApplicationPen.Dependency.*.cs"))
+            foreach (var existingFile in Directory.GetFiles(output, "ApplicationPen.Dependency.*.cs"))
             {
                 File.Delete(existingFile);
             }
+
+            var classNamespace = baseNamespace;
+
+            var inputDirectory = Path.GetDirectoryName(input);
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            {
+                File.AppendAllText(Path.Combine(Output, "pen-generate.log"), $"Resolve:{args.Name}\n");
+                string simpleName = args.Name.Split(',')[0] + ".dll";
+                var assemblyPath = Path.Combine(inputDirectory, simpleName);
+                if (File.Exists(assemblyPath))
+                {
+                    File.AppendAllText(Path.Combine(Output, "pen-generate.log"), $"Resolve:LoadFrom:{assemblyPath}\n");
+                    return Assembly.LoadFrom(assemblyPath);
+                }
+                File.AppendAllText(Path.Combine(Output, "pen-generate.log"), $"Unresolved:{args.Name}\n");
+                return null;
+            };
+            var assembly = Assembly.LoadFrom(input);
+            var dependencies = ResolveDependencies(assembly).Values.ToArray();
 
             foreach (var dependency in dependencies)
             {
@@ -34,8 +53,25 @@ namespace Pen
 
         private static Dictionary<Type, DependencyDefinition> ResolveDependencies(Assembly inAssembly)
         {
-            var dependencyAttributes = inAssembly.GetCustomAttributes<DependencyAttribute>();
-            var decoratorAttributes = inAssembly.GetCustomAttributes<DecoratorAttribute>();
+            var attributes = inAssembly.CustomAttributes;
+            File.AppendAllText(Path.Combine(Output, "pen-generate.log"), "---\n");
+            foreach(var attribute in attributes)
+            {
+                File.AppendAllText(Path.Combine(Output, "pen-generate.log"), attribute.AttributeType.AssemblyQualifiedName + "\n");
+            }
+
+            var dependencyAttributes = attributes
+                .Where(item => item.AttributeType.AssemblyQualifiedName == typeof(DependencyAttribute).AssemblyQualifiedName)
+                .Select(item => (IDependencyData)new DependencyData(item));
+            File.AppendAllText(Path.Combine(Output, "pen-generate.log"), "---\n");
+            foreach (var attribute in dependencyAttributes)
+            {
+                File.AppendAllText(Path.Combine(Output, "pen-generate.log"), $"{{\"type\":\"{attribute.Type}\"}}\n");
+            }
+
+            var decoratorAttributes = attributes
+                .Where(item => item.AttributeType.AssemblyQualifiedName == typeof(DecoratorAttribute).AssemblyQualifiedName)
+                .Select(item => (IDecoratorData)new DecoratorData(item));
             var decoratorAttributeLookup = decoratorAttributes.ToLookup(item => item.Dependency);
 
             var dependencies = new Dictionary<Type, DependencyDefinition>();
@@ -58,7 +94,7 @@ namespace Pen
                     Initializer = dependencyAttribute.Initializer,
                     Lifestyle = dependencyAttribute.Lifestyle
                 };
-                dependencies.Add(dependencyAttribute.Type, dependency);
+                dependencies.Add(dependency.Type, dependency);
             }
 
             foreach (var value in dependencies.Values.ToList())
@@ -134,28 +170,30 @@ namespace Pen
             return dependencies;
         }
 
-        private static ProviderDefinition GetProvider(DependencyAttribute from, Dictionary<Type, DependencyDefinition> dependencies)
+        private static ProviderDefinition GetProvider(IDependencyData from, Dictionary<Type, DependencyDefinition> dependencies)
         {
-            if (from.Provider == null)
+            var dependencyType = from.Type;
+            var providerType = from.Provider;
+            if (providerType == null)
             {
                 return new ProviderDefinition()
                 {
                     Strategy = ProviderType.Implementation,
-                    Type = from.Provider
+                    Type = providerType
                 };
             }
-            else if (from.Type.IsAssignableFrom(from.Provider))
+            else if (dependencyType.IsAssignableFrom(providerType))
             {
                 return new ProviderDefinition()
                 {
                     Strategy = ProviderType.Implementation,
-                    Type = from.Provider
+                    Type = providerType
                 };
             }
             else
             {
-                var factoryMethods = from.Provider.GetMethods()
-                    .Where(item => from.Type.IsAssignableFrom(item.ReturnType));
+                var factoryMethods = providerType.GetMethods()
+                    .Where(item => dependencyType.IsAssignableFrom(item.ReturnType));
                 if (factoryMethods.Count() == 1)
                 {
                     var factoryMethod = factoryMethods.Single();
@@ -163,24 +201,24 @@ namespace Pen
                     var provider = new ProviderDefinition()
                     {
                         Strategy = ProviderType.Factory,
-                        Type = from.Provider,
+                        Type = providerType,
                         Method = factoryMethod,
                         Dependencies = new List<DependencyDefinition>()
                     };
 
-                    if (!dependencies.ContainsKey(from.Provider))
+                    if (!dependencies.ContainsKey(providerType))
                     {
                         dependencies.Add(
-                            from.Provider,
+                            providerType,
                             new DependencyDefinition()
                             {
                                 Declaration = null,
                                 Lifestyle = Lifestyles.Transient,
-                                Type = from.Provider,
+                                Type = providerType,
                                 Provider = new ProviderDefinition()
                                 {
                                     Strategy = ProviderType.Implementation,
-                                    Type = from.Provider
+                                    Type = providerType
                                 }
                             });
                     }
@@ -365,6 +403,15 @@ namespace Pen
             }
             return builder.ToString();
         }
+
+
+        private static void FileDeleteIfExists(string path)
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
     }
 
     internal static class StringBuilderExtensions
@@ -470,4 +517,6 @@ namespace Pen
             target.AppendEndLine();
         }
     }
+
+
 }

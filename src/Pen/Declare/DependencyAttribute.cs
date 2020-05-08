@@ -3,7 +3,7 @@
 namespace Pen.Declare
 {
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    public class DependencyAttribute : Attribute
+    public class DependencyAttribute : Attribute, IDependencyData
     {
         public DependencyAttribute(Type type, Type provider = null, Lifestyles lifestyle = Lifestyles.Transient, Type initializer = null)
         {
